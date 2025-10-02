@@ -13,34 +13,25 @@ from scipy.stats import pearsonr, spearmanr, shapiro, gaussian_kde, norm
 import statsmodels.api as sm
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from scipy.optimize import curve_fit
 #%% Pendientes 
-
 pend_300_1=glob('300_primera/**/pendientes.txt',recursive=True)
 pend_300_1.sort(reverse=True)
-
 pend_300_2=glob('300_segunda/**/pendientes.txt',recursive=True)
 pend_300_2.sort(reverse=True)
-
 pend_300_3=glob('300_tercera/**/pendientes.txt',recursive=True)
 pend_300_3.sort(reverse=True)
 
 pend_270=glob('270/**/pendientes.txt',recursive=True)
 pend_270.sort(reverse=True)
-
 pend_240=glob('240/**/pendientes.txt',recursive=True)
 pend_240.sort(reverse=True)
-
 pend_212=glob('212/**/pendientes.txt',recursive=True)
 pend_212.sort(reverse=True)
-
 pend_175=glob('175/**/pendientes.txt',recursive=True)
 pend_175.sort(reverse=True)
-
 pend_135=glob('135/**/pendientes.txt',recursive=True)
 pend_135.sort(reverse=True)
-
 pend_112=glob('112/**/pendientes.txt',recursive=True)
 pend_112.sort(reverse=True)
 
@@ -87,6 +78,120 @@ m_135_err= [val.s for val in m_135]
 m_112_err= [val.s for val in m_112]
 
 #%% comparo las de 300 kHz
+m_300 = [m_300_1, m_300_2, m_300_3]
+m_300_nominal = [m_300_1_nominal, m_300_2_nominal, m_300_3_nominal]
+m_300_err = [m_300_1_err, m_300_2_err, m_300_3_err]
+H0 = [20, 24, 27, 31, 35, 38, 42, 46, 50, 53, 57]  # amplitud de campo
+
+fig, ax = plt.subplots(figsize=(10, 5), constrained_layout=True)
+
+# Función para calcular estadísticas y formatear el label
+def calcular_estadisticas_label(m_data, label_base):
+    # Valor medio con propagación de incertezas
+    mean_ufloat = sum(m_data) / len(m_data)
+    
+    # Dispersión de los valores nominales (sin considerar errores individuales)
+    valores_nominales = [val.n for val in m_data]
+    dispersion = np.std(valores_nominales)
+    
+    # Formatear el valor medio con notación u
+    if mean_ufloat.s < 1:
+        mean_str = f"{mean_ufloat:.1uS}"
+    else:
+        mean_str = f"{mean_ufloat:.1uS}"
+    
+    # Formatear la dispersión
+    if dispersion < 1:
+        disp_str = f"{dispersion:.1f}"
+    else:
+        disp_str = f"{dispersion:.1f}"
+    
+    label = f'{label_base}\n⟨m⟩ = {mean_str} (σ={disp_str})'
+    return label, mean_ufloat , dispersion
+
+# Calcular labels para cada serie
+label_1, mean_1, disp_1 = calcular_estadisticas_label(m_300_1, '300 kHz - 1ª')
+label_2, mean_2, disp_2 = calcular_estadisticas_label(m_300_2, '300 kHz - 2ª')  
+label_3, mean_3, disp_3 = calcular_estadisticas_label(m_300_3, '300 kHz - 3ª')
+
+# Graficar con los nuevos labels
+ax.errorbar(H0, m_300_1_nominal, yerr=m_300_1_err, fmt='.-', label=label_1, capsize=5, markersize=8)
+ax.errorbar(H0, m_300_2_nominal, yerr=m_300_2_err, fmt='.-', label=label_2, capsize=5, markersize=8)
+ax.errorbar(H0, m_300_3_nominal, yerr=m_300_3_err, fmt='.-', label=label_3, capsize=5, markersize=8)
+
+ax.set_xlabel('H$_0$ [kA/m]', fontsize=12, fontweight='bold')
+ax.set_ylabel('Pendiente m (x10$^{14}$) [Vs/A/m]', fontsize=12, fontweight='bold')
+ax.set_title('Comparativa de Pendientes m - 300 kHz', fontsize=14, fontweight='bold')
+ax.legend(fontsize=10, framealpha=0.9,ncol=3,loc='lower right')
+ax.grid(True, alpha=0.3)
+
+# Opcional: Mostrar valores en consola también
+print("ESTADÍSTICAS - 300 kHz")
+print("-" * 50)
+print(f"1ª serie: ⟨m⟩ = {mean_1:.1uS} , σ = {disp_1:.1f}")
+print(f"2ª serie: ⟨m⟩ = {mean_2:.1uS} , σ = {disp_2:.1f}") 
+print(f"3ª serie: ⟨m⟩ = {mean_3:.1uS} , σ = {disp_3:.1f}")
+
+plt.savefig('comparativa_pendientes_300kHz.png', dpi=300)   
+plt.show()
+
+#%% Figura con valores medios y dispersión
+import numpy as np
+from uncertainties import ufloat
+
+frecuencias = [270, 240, 212, 175, 135, 112]
+datos_frecuencias = [
+    (m_270, '270 kHz'),
+    (m_240, '240 kHz'), 
+    (m_212, '212 kHz'),
+    (m_175, '175 kHz'),
+    (m_135, '135 kHz'),
+    (m_112, '112 kHz')]
+
+H0 = [20, 24, 27, 31, 35, 38, 42, 46, 50, 53, 57]
+
+fig, axes = plt.subplots(3, 2, figsize=(12, 12), constrained_layout=True,sharex=True,sharey=True)
+axes = axes.flatten()
+
+for i, (m_data, label) in enumerate(datos_frecuencias):
+    # Extraer valores nominales y errores
+    m_nominal = [val.n for val in m_data]
+    m_err = [val.s for val in m_data]
+    
+    m_mean = sum(m_data) / len(m_data)
+    dispersion = np.std(m_nominal)
+    # Graficar datos individuales
+    axes[i].errorbar(H0, m_nominal, yerr=m_err, fmt='.-', capsize=5, 
+                    label=f'Datos ($\sigma$ {dispersion:.1f}) ', markersize=6, color='blue', alpha=0.8)
+    
+    # Graficar franja del intervalo de incertidumbre
+    axes[i].axhspan(ymin=m_mean.n - m_mean.s, ymax=m_mean.n + m_mean.s, 
+                   alpha=0.3, color='red', label=f'Media: {m_mean:.1uS}')
+    
+    axes[i].set_xlabel('H$_0$ [kA/m]', fontsize=11)
+    axes[i].set_ylabel('m (x10$^{14}$) [Vs/A/m]', fontsize=11)
+    axes[i].set_title(f'{label}', fontsize=12, fontweight='bold')
+    axes[i].grid(True, alpha=0.3)
+    
+    # Formatear el legend con notación u
+    mean_str = f"{m_mean.n:.1f}({m_mean.s:.0f})" if m_mean.s < 1 else f"{m_mean.n:.1f}({m_mean.s:.1f})"
+    axes[i].legend(loc='best', fontsize=10)
+
+fig.suptitle('Pendientes m vs H0 para Diferentes Frecuencias', 
+             fontsize=16, fontweight='bold', y=1.02)
+plt.savefig('pendientes_m_frecuencias.png', dpi=300)    
+plt.show()
+
+# Mostrar valores medios en consola
+print("Valores medios por frecuencia:")
+print("-" * 40)
+for (m_data, label) in datos_frecuencias:
+    m_mean = sum(m_data) / len(m_data)
+    mean_str = f"{m_mean:.1uS}"
+    print(f"{label}: {mean_str} ×10¹⁴ Vs/A/m - Dispersión: {np.std([val.n for val in m_data]):.1f}  ")
+
+
+#%% Heatmap todo
 m = [m_300_2,m_270,m_240,m_212,m_175,m_135,m_112]
 # Crear matriz para el heatmap (usando valores nominales)
 m_nominal = np.array([ m_300_2_nominal,m_270_nominal,m_240_nominal,m_212_nominal,m_175_nominal,m_135_nominal,m_112_nominal])
@@ -96,7 +201,7 @@ frecuencias = [300,270,240,212,175,135,112]  # kHz
 H0 = [20, 24, 27, 31, 35, 38, 42, 46, 50, 53, 57]  # amplitud de campo
 
 # Crear figura y ejes
-plt.figure(figsize=(12, 6),constrained_layout=True)
+plt.figure(figsize=(11, 5.5),constrained_layout=True)
 
 # Crear heatmap con valores nominales
 heatmap = sns.heatmap(
@@ -122,19 +227,17 @@ plt.yticks(rotation=0)
 plt.savefig('heatmap_pendiente_m_vs_frecuencia_amplitud_H0.png', dpi=300)
 plt.show()
 
-#%% ANÁLISIS ESTADÍSTICO DE CORRELACIONES - PENDIENTES (DATOS ACTUALES)
+#%% ANÁLISIS ESTADÍSTICO DE CORRELACIONES - PENDIENTES (DATOS 250924_paramagneto_calibracion_nueva_bob)
 # =============================================================================
 print("="*60)
-print("ANÁLISIS ESTADÍSTICO DE CORRELACIONES - PENDIENTES ACTUALES")
+print("ANÁLISIS ESTADÍSTICO DE CORRELACIONES - PENDIENTES ")
 print("="*60)
 
-
-
-#% 1. PREPARACIÓN DE DATOS ACTUALES
-print("\n1. PREPARACIÓN DE DATOS ACTUALES")
+#% 1. PREPARACIÓN DE DATOS 
+print("\n1. PREPARACIÓN DE DATOS ")
 print("-"*40)
 
-# Crear DataFrame con los datos actuales
+# Crear DataFrame con los datos 
 corr_data_m = []
 for i, freq in enumerate(frecuencias):
     for j, h0_val in enumerate(H0):
@@ -151,10 +254,10 @@ print(f"Dataset creado con {len(df_pendientes)} observaciones")
 print(f"Frecuencias: {frecuencias}")
 print(f"Campos H0: {H0}")
 print("\nPrimeras 5 filas:")
-print(df_pendientes.head())
+print(df_pendientes)
 
-#% 2. ESTADÍSTICAS DESCRIPTIVAS ACTUALES
-print("\n\n2. ESTADÍSTICAS DESCRIPTIVAS ACTUALES")
+#%%2. ESTADÍSTICAS DESCRIPTIVAS 
+print("\n\n2. ESTADÍSTICAS DESCRIPTIVAS ")
 print("-"*40)
 
 # Función para calcular estadísticas ponderadas por incertezas
@@ -209,7 +312,7 @@ print(f"• La diferencia entre medias es de sólo {abs(weighted_mean - simple_m
 print(f"• Esto indica que las incertezas son relativamente homogéneas entre mediciones")
 print(f"• Para análisis posteriores, podemos usar la media simple dado que la diferencia es pequeña")
 
-#% 3. ANÁLISIS POR FRECUENCIA
+#%% 3. ANÁLISIS POR FRECUENCIA
 print("\n\n3. ESTADÍSTICAS POR FRECUENCIA")
 print("-"*40)
 
@@ -418,7 +521,7 @@ _, p_residuals = shapiro(residuals)
 print(f"Normalidad de residuos (Shapiro-Wilk): p = {p_residuals:.3e}")
 print(f"Interpretación: {'Normal' if p_residuals > 0.05 else 'No normal'}")
 
-#% 10. EXPORTACIÓN DE RESULTADOS
+#%% 10. EXPORTACIÓN DE RESULTADOS
 print("\n\n10. EXPORTACIÓN DE RESULTADOS")
 print("-"*40)
 
@@ -444,9 +547,9 @@ with open('resumen_analisis_pendientes_actual.txt', 'w') as f:
     
     f.write("CORRELACIONES:\n")
     f.write(f"Pendiente vs Frecuencia (Pearson):  r = {corr_freq_pearson:.3f}, p = {p_freq_pearson:.3e}\n")
-    f.write(f"Pendiente vs Frecuencia (Spearman): ρ = {corr_freq_spearman:.3f}, p = {p_freq_spearman:.3e}\n")
+    f.write(f"Pendiente vs Frecuencia (Spearman): rho = {corr_freq_spearman:.3f}, p = {p_freq_spearman:.3e}\n")
     f.write(f"Pendiente vs H0 (Pearson):          r = {corr_h0_pearson:.3f}, p = {p_h0_pearson:.3e}\n")
-    f.write(f"Pendiente vs H0 (Spearman):         ρ = {corr_h0_spearman:.3f}, p = {p_h0_spearman:.3e}\n")
+    f.write(f"Pendiente vs H0 (Spearman):         rho = {corr_h0_spearman:.3f}, p = {p_h0_spearman:.3e}\n")
     f.write(f"Pendiente vs Frecuencia (Bootstrap): r = {r_freq_bootstrap:.3f} ± {r_freq_err:.3f}\n")
     f.write(f"Pendiente vs H0 (Bootstrap):         r = {r_h0_bootstrap:.3f} ± {r_h0_err:.3f}\n\n")
     
@@ -463,7 +566,7 @@ with open('resumen_analisis_pendientes_actual.txt', 'w') as f:
 
 print("✓ Resumen estadístico guardado en 'resumen_analisis_pendientes_actual.txt'")
 
-#% 11. INTERPRETACIÓN FINAL
+#%%11. INTERPRETACIÓN FINAL
 print("\n\n11. INTERPRETACIÓN FINAL")
 print("-"*40)
 print("RESUMEN EJECUTIVO:")
@@ -512,7 +615,6 @@ print("="*60)
 print("COMPARATIVA DE HISTOGRAMAS - TODAS LAS FRECUENCIAS")
 print("="*60)
 
-
 #%1. PREPARAR DATOS PARA HISTOGRAMAS
 print("\n1. PREPARANDO DATOS PARA HISTOGRAMAS...")
 
@@ -548,8 +650,7 @@ colores = {
     212: '#d62728',  # Rojo
     175: '#9467bd',  # Púrpura
     135: '#8c564b',  # Marrón
-    112: '#e377c2'   # Rosa
-}
+    112: '#e377c2'}   # Rosa 
 
 nombres_frecuencias = {
     300: '300 kHz',
@@ -558,11 +659,10 @@ nombres_frecuencias = {
     212: '212 kHz',
     175: '175 kHz',
     135: '135 kHz',
-    112: '112 kHz'
-}
-
+    112: '112 kHz'}
+#%%
 # Crear figura con subplots para histogramas individuales
-fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+fig, axes = plt.subplots(4,2, figsize=(10, 18),constrained_layout=True,sharex=True,sharey=True)
 fig.suptitle('Distribución de Pendientes por Frecuencia', fontsize=16, fontweight='bold')
 
 axes = axes.flatten()
@@ -572,8 +672,9 @@ for idx, (freq, color) in enumerate(colores.items()):
         datos_freq = df_hist[df_hist['Frecuencia'] == freq]['Pendiente']
         
         # Histograma
-        n, bins, patches = axes[idx].hist(datos_freq, bins=8, alpha=0.7, color=color, 
-                                        edgecolor='black', linewidth=0.5, density=True)
+        n, bins, patches = axes[idx].hist(datos_freq, bins=5, alpha=0.7, color=color, 
+                                        edgecolor='black', linewidth=0.5, density=True,
+                                        label=f'{nombres_frecuencias[freq]} (n={len(datos_freq)}, bins=5)')
         
         # Línea de densidad
         kde = gaussian_kde(datos_freq)
@@ -597,19 +698,58 @@ if len(colores) < len(axes):
     for idx in range(len(colores), len(axes)):
         axes[idx].set_visible(False)
 
-plt.tight_layout()
-plt.savefig('histogramas_individuales_frecuencias.png', dpi=300, bbox_inches='tight')
+plt.savefig('histogramas_individuales_frecuencias-misma-escala.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-#% 3. HISTOGRAMA COMPARATIVO SUPERPUESTO
+
+fig, axes = plt.subplots(4,2, figsize=(10, 18),constrained_layout=True,sharey=True)
+fig.suptitle('Distribución de Pendientes por Frecuencia', fontsize=16, fontweight='bold')
+
+axes = axes.flatten()
+
+for idx, (freq, color) in enumerate(colores.items()):
+    if idx < len(axes):
+        datos_freq = df_hist[df_hist['Frecuencia'] == freq]['Pendiente']
+        
+        # Histograma
+        n, bins, patches = axes[idx].hist(datos_freq, bins=5, alpha=0.7, color=color, 
+                                        edgecolor='black', linewidth=0.5, density=True,
+                                        label=f'{nombres_frecuencias[freq]} (n={len(datos_freq)}, bins=5)')
+        
+        # Línea de densidad
+        kde = gaussian_kde(datos_freq)
+        x_vals = np.linspace(datos_freq.min(), datos_freq.max(), 100)
+        axes[idx].plot(x_vals, kde(x_vals), color='darkred', linewidth=2, label='Densidad')
+        
+        # Líneas verticales para media y mediana
+        media = datos_freq.mean()
+        mediana = datos_freq.median()
+        axes[idx].axvline(media, color='red', linestyle='--', linewidth=2, label=f'Media: {media:.2f}')
+        axes[idx].axvline(mediana, color='green', linestyle='--', linewidth=2, label=f'Mediana: {mediana:.2f}')
+        
+        axes[idx].set_title(f'{nombres_frecuencias[freq]} (n={len(datos_freq)})', fontweight='bold')
+        axes[idx].set_xlabel('Pendiente (×10¹⁴ Vs/A/m)')
+        axes[idx].set_ylabel('Densidad')
+        axes[idx].legend(fontsize=8)
+        axes[idx].grid(True, alpha=0.3)
+
+# Ocultar el último subplot si no se usa
+if len(colores) < len(axes):
+    for idx in range(len(colores), len(axes)):
+        axes[idx].set_visible(False)
+
+#plt.savefig('histogramas_individuales_frecuencias.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+#%%% 3. HISTOGRAMA COMPARATIVO SUPERPUESTO
 print("\n3. CREANDO HISTOGRAMA COMPARATIVO SUPERPUESTO...")
 
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(14, 8),constrained_layout=True)
 
 # Histograma superpuesto
 for freq, color in colores.items():
     datos_freq = df_hist[df_hist['Frecuencia'] == freq]['Pendiente']
-    plt.hist(datos_freq, bins=10, alpha=0.6, color=color, 
+    plt.hist(datos_freq, bins=7, alpha=0.6, color=color, rwidth=0.9,
              label=f'{nombres_frecuencias[freq]} (n={len(datos_freq)})', 
              edgecolor='black', linewidth=0.5, density=True)
 
@@ -617,16 +757,16 @@ plt.xlabel('Pendiente (×10¹⁴ Vs/A/m)', fontsize=12, fontweight='bold')
 plt.ylabel('Densidad', fontsize=12, fontweight='bold')
 plt.title('Comparativa de Distribuciones de Pendientes por Frecuencia', 
           fontsize=14, fontweight='bold')
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend(loc='upper right')
 plt.grid(True, alpha=0.3)
-plt.tight_layout()
+
 plt.savefig('histograma_comparativo_superpuesto.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 #%% 4. GRÁFICO DE DENSIDAD KDE
 print("\n4. CREANDO GRÁFICO DE DENSIDAD KDE...")
 
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(12, 6),constrained_layout=True)
 
 for freq, color in colores.items():
     datos_freq = df_hist[df_hist['Frecuencia'] == freq]['Pendiente']
@@ -645,9 +785,9 @@ plt.xlabel('Pendiente (×10¹⁴ Vs/A/m)', fontsize=12, fontweight='bold')
 plt.ylabel('Densidad de Probabilidad', fontsize=12, fontweight='bold')
 plt.title('Estimación de Densidad Kernel (KDE) de Pendientes por Frecuencia', 
           fontsize=14, fontweight='bold')
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.legend( ncol=3,loc='upper right')
 plt.grid(True, alpha=0.3)
-plt.tight_layout()
+
 plt.savefig('densidad_kde_frecuencias.png', dpi=300, bbox_inches='tight')
 plt.show()
 
@@ -880,7 +1020,7 @@ print(f"Media global: {todas_pendientes.mean():.3f} ± {todas_pendientes.std():.
 #% 2. HISTOGRAMA PRINCIPAL CON TODOS LOS DATOS
 print("\n2. CREANDO HISTOGRAMA PRINCIPAL...")
 
-plt.figure(figsize=(14, 9))
+plt.figure(figsize=(12, 8),constrained_layout=True)
 
 # Histograma principal
 n, bins, patches = plt.hist(todas_pendientes, bins=15, alpha=0.7, color='steelblue', 
@@ -931,14 +1071,14 @@ props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
 plt.text(0.02, 0.98, textstr, transform=plt.gca().transAxes, fontsize=10,
          verticalalignment='top', bbox=props)
 
-plt.tight_layout()
+
 plt.savefig('histograma_todas_pendientes.png', dpi=300, bbox_inches='tight')
 plt.show()
-
-#% 3. HISTOGRAMA CON DISTRIBUCIÓN NORMAL COMPARATIVA
+#
+#%% 3. HISTOGRAMA CON DISTRIBUCIÓN NORMAL COMPARATIVA
 print("\n3. CREANDO HISTOGRAMA CON DISTRIBUCIÓN NORMAL COMPARATIVA...")
 
-plt.figure(figsize=(14, 9))
+plt.figure(figsize=(12, 8),constrained_layout=True)
 
 # Histograma con densidad
 n, bins, patches = plt.hist(todas_pendientes, bins=15, alpha=0.7, color='lightblue', 
@@ -981,11 +1121,10 @@ D'Agostino: p = {p_ks:.3e}
     plt.text(0.02, 0.98, textstr, transform=plt.gca().transAxes, fontsize=10,
              verticalalignment='top', bbox=props)
 
-plt.tight_layout()
 plt.savefig('histograma_normal_comparativo.png', dpi=300, bbox_inches='tight')
 plt.show()
 
-#%4. HISTOGRAMA ACUMULATIVO (CDF)
+#%% 4. HISTOGRAMA ACUMULATIVO (CDF)
 print("\n4. CREANDO HISTOGRAMA ACUMULATIVO...")
 
 plt.figure(figsize=(14, 8))
@@ -1025,7 +1164,7 @@ plt.show()
 #% 5. HISTOGRAMA POR GRUPOS DE FRECUENCIA (STACKED)
 print("\n5. CREANDO HISTOGRAMA AGRUPADO POR FRECUENCIA...")
 
-plt.figure(figsize=(14, 9))
+plt.figure(figsize=(14, 9),constrained_layout=True)
 
 # Preparar datos para histograma agrupado
 datos_por_frecuencia = {}
@@ -1050,7 +1189,7 @@ plt.title('Distribución de Pendientes por Frecuencia (Histograma Apilado)',
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
 plt.grid(True, alpha=0.3)
 
-plt.tight_layout()
+
 plt.savefig('histograma_apilado_frecuencias.png', dpi=300, bbox_inches='tight')
 plt.show()
 

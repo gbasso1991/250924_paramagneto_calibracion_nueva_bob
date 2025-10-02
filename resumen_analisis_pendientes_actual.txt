@@ -1,0 +1,32 @@
+RESUMEN DE ANÁLISIS ESTADÍSTICO - PENDIENTES (DATOS ACTUALES)
+======================================================================
+
+DATOS GENERALES:
+Número de observaciones: 77
+Frecuencias analizadas: [300, 270, 240, 212, 175, 135, 112]
+Campos H0 analizados: [20, 24, 27, 31, 35, 38, 42, 46, 50, 53, 57]
+
+ESTADÍSTICAS DESCRIPTIVAS:
+Media ponderada: 8.602 ± 0.009
+Media simple: 8.749 ± 0.060
+Desviación estándar: 0.523
+Rango: [7.560, 10.351]
+
+CORRELACIONES:
+Pendiente vs Frecuencia (Pearson):  r = -0.279, p = 1.409e-02
+Pendiente vs Frecuencia (Spearman): rho = -0.218, p = 5.689e-02
+Pendiente vs H0 (Pearson):          r = 0.323, p = 4.124e-03
+Pendiente vs H0 (Spearman):         rho = 0.325, p = 3.882e-03
+Pendiente vs Frecuencia (Bootstrap): r = -0.273 ± 0.024
+Pendiente vs H0 (Bootstrap):         r = 0.317 ± 0.021
+
+REGRESIÓN MÚLTIPLE (PONDERADA):
+R² = 0.098
+R² ajustado = 0.074
+Intercepto = 8.459e+00
+Coef. Frecuencia = -1.076e-03
+Coef. H0 = 1.037e-02
+
+NORMALIDAD DE RESIDUOS:
+Shapiro-Wilk p-value: 6.324e-01
+Interpretación: Normal
